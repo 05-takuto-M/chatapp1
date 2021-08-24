@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/chat.css">
+  <title>chatApp</title>
+
+  <style>
+    #output li {
+      background: #ccc;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Universal chat</h1>
+  <!-- 入力場所を作成しよう -->
+  <form>
+    <fieldset>
+      <legend>Typing area</legend>
+
+      <div class="flex1">
+        <!-- ユーザー1 -->
+        <div>
+          <div>
+            Name:<input placeholder="User1" type="text" id="name">
+          </div>
+          <div>
+            Message:<input type="text" id="text">
+          </div>
+          <div>
+            <button type="button" id="send">send</button>
+          </div>
+        </div>
+        <!-- ユーザー1 -->
+        <!-- ユーザー2 -->
+        <div>
+          <div>
+            Name:<input placeholder="User2" type="text" id="name1">
+          </div>
+          <div>
+            Message:<input type="text" id="text1">
+          </div>
+          <div>
+            <button type="button" id="send1">send</button>
+          </div>
+        </div>
+        <!-- ユーザー2 -->
+      </div>
+      <div class="flex2">
+        <div>
+          <button type="button" id="clear">clear</button>
+        </div>
+        <div>
+          <input placeholder="ID" type="text" id="id">
+        </div>
+      </div>
+
+    </fieldset>
+  </form>
+
+  <!-- データ出力場所 -->
+  <div class="flex1">
+    <div class="output">
+      <ul id="output"></ul>
+    </div>
+    <div class="output">
+      <ul id="output2"></ul>
+    </div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <!-- 以下にfirebaseのコードを貼り付けよう -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
+  <!-- ↑の-appを削除する↓↓これが元のやつ -->
+  <!-- <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script> -->
+
+  <script>
+    var firebaseConfig = {
+      authDomain: "chatapp-54b70.firebaseapp.com",
+      projectId: "chatapp-54b70",
+      storageBucket: "chatapp-54b70.appspot.com",
+      messagingSenderId: "560917626173",
+      appId: "1:560917626173:web:7a03c710f4e4efbaff1954"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <!-- ↑↑ここまでがGoogle fire baseのコードコピペしたやつ -->
+
+  <script>
+    // 日時をいい感じの形式にする関数
+    function convertFromFirestoreTimestampToDatetime(timestamp) {
+      const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+      const Y = _d.getFullYear();
+      const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+      const d = _d.getDate().toString().padStart(2, '0');
+      const H = _d.getHours().toString().padStart(2, '0');
+      const i = _d.getMinutes().toString().padStart(2, '0');
+      const s = _d.getSeconds().toString().padStart(2, '0');
+      return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    }
+
+    // ↓fire baseの「chat」コレクションに送る
+
+
+    const db = firebase.firestore().collection('universalchat');
+    const db1 = firebase.firestore().collection('universalchat2');
+
+    // ユーザー１
+    // 送信ボタン押した時のクリックイベント
+    $('#send').on('click', function () {
+      // 送信時に必要な処理
+      const data = {
+        name: $('#name').val(),
+        text: $('#text').val(),
+        time: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      // ↓関数のdateをadd(送る)する
+      db.add(data);
+      // 送信後空白にする↓
+      $('#text').val('');
+    });
+
+    // ↓Enter keyで送信
+    $('#text').on('keydown', function (e) {
+      if (e.keyCode === 13) {
+        const data = {
+          name: $('#name').val(),
+          text: $('#text').val(),
+          time: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        db.add(data);
+        $('#text').val('');
+      }
+    });
+
+    // ↓データを出力
+    db.orderBy('time', 'desc').onSnapshot(function (querySnapshot) {
+      console.log(querySnapshot.docs);
+      const dataArray = [];
+      querySnapshot.docs.forEach(function (doc) {
+        const data = {
+          id: doc.id,
+          data: doc.data(),
+        };
+        dataArray.push(data);
+      });
+      console.log(dataArray);
+
+      const tagArray = [];
+      dataArray.forEach(function (data) {
+        tagArray.push(`
+          <div id="${data.id}">
+            <p>${data.data.name} day:${convertFromFirestoreTimestampToDatetime(data.data.time.seconds)}
+              ID:<span>${data.id}</span></p>
+            <p class="mes">${data.data.text}</p>
+          </div>
+  `);
+      });
+      $('#output').html(tagArray);
+    });
+
+
+    // ユーザー2
+    // 送信ボタン押した時のクリックイベント
+    $('#send1').on('click', function () {
+      // 送信時に必要な処理
+      const data = {
+        name: $('#name1').val(),
+        text: $('#text1').val(),
+        time: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      // ↓関数のdateをadd(送る)する
+      db1.add(data);
+      // 送信後空白にする↓
+      $('#text1').val('');
+    });
+
+    // ↓Enter keyで送信
+    $('#text1').on('keydown', function (e) {
+      if (e.keyCode === 13) {
+        const data = {
+          name: $('#name1').val(),
+          text: $('#text1').val(),
+          time: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        db1.add(data);
+        $('#text1').val('');
+      }
+    });
+
+    // ↓データを出力
+    db1.orderBy('time', 'desc').onSnapshot(function (querySnapshot) {
+      console.log(querySnapshot.docs);
+      const dataArray = [];
+      querySnapshot.docs.forEach(function (doc) {
+        const data = {
+          id: doc.id,
+          data: doc.data(),
+        };
+        dataArray.push(data);
+      });
+      console.log(dataArray);
+
+      const tagArray = [];
+      dataArray.forEach(function (data) {
+        tagArray.push(`
+        <div id="${data.id}">
+            <p>${data.data.name} day:${convertFromFirestoreTimestampToDatetime(data.data.time.seconds)}
+              ID:<span>${data.id}</span></p>
+            <p class="mes">${data.data.text}</p>
+          </div>
+  `);
+      });
+      $('#output2').html(tagArray);
+    });
+
+
+
+
+    // ドキュメントid削除 ユーザー1用
+    $('#clear').on('click', function () {
+      const data = $('#id').val();
+
+      db.doc(data).delete().then(function () {
+        console.log("Document successfully deleted!");
+      }).catch(function (error) {
+        console.error("Error removing document: ", error);
+      });
+    });
+
+
+    // ドキュメントid削除 ユーザー2用
+    $('#clear').on('click', function () {
+      const data = $('#id').val();
+
+      db1.doc(data).delete().then(function () {
+        console.log("Document successfully deleted!");
+      }).catch(function (error) {
+        console.error("Error removing document: ", error);
+      });
+    });
+
+
+
+
+  </script>
+
+</body>
+
+</html>
